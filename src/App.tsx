@@ -225,17 +225,35 @@ const useProps = (): Props => {
   } catch (error) {
     // Error code 4902 means chain hasn't been added to Phantom yet
     if (error.code === 4902) {
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [{
-          chainId: '0x89',
-          chainName: 'Polygon Mainnet',
-          nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
-          rpcUrls: ['https://polygon-rpc.com'],
-          blockExplorerUrls: ['https://polygonscan.com'],
-        }],
-      });
-    } else {
+  try {
+    await window.ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: '0x89',
+        chainName: 'Polygon Mainnet',
+        nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+        rpcUrls: ['https://polygon-rpc.com'],
+        blockExplorerUrls: ['https://polygonscan.com'],
+      }],
+    });
+    // Retry the switch after adding the chain
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: '0x89' }],
+    });
+    createLog({
+      status: 'success',
+      method: 'eth_sendTransaction',
+      message: 'Polygon Mainnet added and switched successfully!',
+    });
+  } catch (addError: any) {
+    createLog({
+      status: 'error',
+      method: 'eth_sendTransaction',
+      message: addError.message,
+    });
+  }
+} else {
       createLog({
         status: 'error',
         method: 'eth_sendTransaction',
@@ -284,7 +302,7 @@ const useProps = (): Props => {
         onClick: handleSwitchNetwork,
       }
     ];
-  }, [handleEthSendTransaction, handleSignMessage,handleSwitchNetwork]);
+  },  [handleEthSendTransaction, handleSignMessage, handleConnect, handleSwitchNetwork]);
 
   return {
     address: accounts[0],
